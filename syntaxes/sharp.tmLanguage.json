@@ -7,7 +7,7 @@
     },
     {
       "name": "storage.type.primitive.cs",
-      "match": "\\b(bool|byte|char|decimal|double|float|int|long|object|sbyte|short|string|uint|ulong|ushort|void|dynamic|var)\\b"
+      "match": "\\b(bool|byte|char|decimal|double|float|int|long|object|sbyte|short|string|uint|ulong|ushort|void|dynamic)\\b"
     },
     {
       "name": "keyword.control.cs",
