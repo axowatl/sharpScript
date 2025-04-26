@@ -1,0 +1,125 @@
+{
+    "name": "sharpscript",
+    "displayName": "Sharp Script",
+    "description": "Sharp Script support extension",
+    "version": "0.0.225",
+    "publisher": "8929Labs",
+    "readme": "README.md",
+    "author": {
+        "name": "8929 Labs"
+    },
+    "license": "SEE LICENSE IN LICENSE.txt",
+    "engines": {
+        "vscode": "^1.67.0"
+    },
+    "repository": {
+
+    },
+    "extensionKind": [
+        "workspace"
+    ],
+    "keywords": [
+        "Sharp Script"
+    ],
+    "categories": [
+        "Programming Languages"
+    ],
+    "activationEvents": [
+        
+    ],
+    "main": "./src/main.js",
+    "browser": "./src/web/extension.js",
+    "contributes": {
+        "walkthroughs": [
+            
+        ],
+        "taskDefinitions": [
+
+        ],
+        "views": {
+            
+        },
+        "viewsWelcome": [
+            
+        ],
+        "problemMatchers": [
+            
+        ],
+        "configuration": [
+            
+        ],
+        "commands": [
+            {
+                "command": "sharpscript.SayHi",
+                "title": "Sharp Script Say Hi",
+                "category": "Sharp Script"
+            }
+        ],
+        "keybindings": [
+            
+        ],
+        "debuggers": [
+
+        ],
+        "breakpoints": [
+            {
+                "language": "sharpscript"
+            }
+        ],
+        "jsonValidation": [
+            {
+                "fileMatch": "sharp_config.json",
+                "url": "./schemas/sharp_config.schema.json"
+            }
+        ],
+        "menus": {
+            "editor/context": [
+                {
+                    "command": "sharpscript.SayHi",
+                    "when": "resourceLangId == sharpscript",
+                    "group": "custom1@1"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "sharpscript.SayHi"
+                }
+            ]
+        },
+        "configurationDefaults": {
+            
+        },
+        "semanticTokenTypes": [
+            
+        ],
+        "semanticTokenModifiers": [
+            
+        ],
+        "semanticTokenScopes": [
+            
+        ],
+        "codeActions": [
+            
+        ],
+        "languages": [
+            {
+                "id": "sharpscript",
+                "aliases": ["Sharp Script", "SharpScript"],
+                "extensions": [".sharp"]
+            }
+        ],
+        "grammars": [
+            {
+                "language": "sharpscript",
+                "scopeName": "source.sharp",
+                "path": "./syntaxes/sharp.tmLanguage.json"
+            }
+        ]
+    },
+    "scripts": {
+        
+    },
+    "devDependencies": {
+        "vscode": "^1.89.0"
+    }
+}

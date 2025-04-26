@@ -1,0 +1,1 @@
+“If it works in C#, it should work in Sharp Script.”

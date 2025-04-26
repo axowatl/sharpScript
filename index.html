@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Region Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
+  <div class="w-full max-w-2xl bg-white p-6 rounded-xl shadow">
+    <h1 class="text-2xl font-bold mb-4 text-center">Region Generator</h1>
+    <div class="space-y-4">
+      <textarea id="name" placeholder="Name" class="w-full p-2 border rounded"></textarea>
+      <textarea id="classes" placeholder="Classes" class="w-full p-2 border rounded"></textarea>
+      <textarea id="structs" placeholder="Structs" class="w-full p-2 border rounded"></textarea>
+      <textarea id="interfaces" placeholder="Interfaces" class="w-full p-2 border rounded"></textarea>
+      <textarea id="enums" placeholder="Enums" class="w-full p-2 border rounded"></textarea>
+      <textarea id="delegates" placeholder="Delegates" class="w-full p-2 border rounded"></textarea>
+
+      <div class="flex gap-4">
+        <button onclick="generate()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Generate</button>
+        <button onclick="resetAll()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Reset</button>
+      </div>
+
+      <textarea id="result" class="w-full p-2 border rounded h-64" readonly></textarea>
+    </div>
+  </div>
+
+  <script>
+    function generate() {
+      const name = document.getElementById('name').value.trim();
+      const classes = document.getElementById('classes').value.trim();
+      const structs = document.getElementById('structs').value.trim();
+      const interfaces = document.getElementById('interfaces').value.trim();
+      const enums = document.getElementById('enums').value.trim();
+      const delegates = document.getElementById('delegates').value.trim();
+
+      let output = name ? `#region ${name} Namespace\n` : '';
+
+      function addRegion(label, content) {
+        if (!content) return '';
+        const lines = content.split(/\n+/)
+          .map(line => line.trim())
+          .filter(Boolean);
+
+        const identifiers = [];
+        for (let i = 0; i < lines.length; i += 2) {
+          identifiers.push(lines[i]);
+        }
+
+        const commentBlock = identifiers.length ? `/*\n${identifiers.join('\n')}\n*/` : '';
+        return `#region ${label}\n${commentBlock}\n#endregion ${label}\n`;
+      }
+
+      output += addRegion('Classes', classes);
+      output += addRegion('Structs', structs);
+      output += addRegion('Interfaces', interfaces);
+      output += addRegion('Enums', enums);
+      output += addRegion('Delegates', delegates);
+
+      if (name) output += `#endregion ${name} Namespace`;
+
+      document.getElementById('result').value = output.trim();
+    }
+
+    function resetAll() {
+      ['name', 'classes', 'structs', 'interfaces', 'enums', 'delegates', 'result'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+    }
+  </script>
+</body>
+</html>
