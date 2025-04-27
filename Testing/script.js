@@ -1,4 +1,11 @@
-const input = "";
+const input = `struct BigStruct
+{
+    public int A;
+    public int B;
+    public int C;
+    public int D;
+    public int E;
+}`;
 
 class ASTGenerator {
   constructor(input) {
@@ -22,9 +29,17 @@ class Tokenizer {
     this.input = input;
     this.position = 0;
     this.currentChar = this.input[this.position];
-    this.accessModifiers = ["public", "private", "protected", "internal", "protected internal", "private protected", "file"];
-    this.modifiers = ["abstract", "async", "const", "new", "override", "partial", "readonly", "sealed", "static", "virtual"];
-    this.keywords = ["bool", "byte", "char", "decimal", "double", "float", "int", "long", "object", "sbyte", "short", "string", "uint", "ulong", "ushort", "void", "dynamic"];
+    this.valueTypes = ["bool", "byte", "char", "decimal", "double", "enum", "float", "int", "long", "sbyte", "short", "struct", "uint", "ulong", "ushort"];
+    this.referenceTypes = ["class", "delegate", "interface", "object", "string"];
+    this.modifiers = ["public", "private", "internal", "protected", "abstract", "const", "event", "extern", "new", "override", "partial", "readonly", "sealed", "static", "unsafe", "virtual", "volatile"];
+    this.statements = ["if", "else", "switch", "do", "for", "foreach", "in", "while", "break", "continue", "goto", "return", "throw", "try", "catch", "finally", "checked", "unchecked"];
+    this.methodParamters = ["params", "in", "ref", "out"];
+    this.namespaces = ["namespace", "using", "extern"];
+    this.operators = ["as", "is", "new", "sizeof", "typeof", "true", "false", "stackalloc"];
+    this.conversions = ["explicit", "implicit", "operator"];
+    this.access = ["base", "this"];
+    this.literals = ["null", "default"];
+    this.contextual = ["add", "equals", "nameof", "value", "alias", "from", "on", "var", "ascending", "get", "orderby", "when", "async", "global", "where", "await", "group", "partial", "yield", "by", "into", "remove", "descending", "join", "select", "dynamic", "let", "set"];
   }
 
   advance() {
@@ -55,14 +70,56 @@ class Tokenizer {
         continue;
       }
 
+      // Punctuation
+      if (this.currentChar === '{') {
+        tokens.push({ type: 'LBRACE', value: '{' });
+        this.advance();
+        continue;
+      }
+      if (this.currentChar === '}') {
+        tokens.push({ type: 'RBRACE', value: '}' });
+        this.advance();
+        continue;
+      }
+      if (this.currentChar === '(') {
+        tokens.push({ type: 'LPAREN', value: '(' });
+        this.advance();
+        continue;
+      }
+      if (this.currentChar === ')') {
+        tokens.push({ type: 'RPAREN', value: ')' });
+        this.advance();
+        continue;
+      }
+      if (this.currentChar === '[') {
+        tokens.push({ type: 'LBRACKET', value: '[' });
+        this.advance();
+        continue;
+      }
+      if (this.currentChar === ']') {
+        tokens.push({ type: 'RBRACKET', value: ']' });
+        this.advance();
+        continue;
+      }
+
+      // Symbols
       if (this.currentChar === '=') {
         tokens.push({ type: 'OPERATOR', value: '=' });
         this.advance();
         continue;
       }
-
       if (this.currentChar === ';') {
         tokens.push({ type: 'PUNCTUATION', value: ';' });
+        this.advance();
+        continue;
+      }
+      if (this.currentChar === ',') {
+        tokens.push({ type: 'PUNCTUATION', value: ',' });
+        this.advance();
+        continue;
+      }
+      if (this.currentChar === '.') {
+        tokens.push({ type: 'DOT', value: '.' });
         this.advance();
         continue;
       }
@@ -80,16 +137,48 @@ class Tokenizer {
       this.advance();
     }
 
-    if (this.keywords.includes(result)) {
-      return { type: 'KEYWORD', value: result };
+    if (this.valueTypes.includes(result)) {
+      return { type: 'VALUE_TYPE', value: result };
     }
 
-    if (this.accessModifiers.includes(result)) {
-      return { type: 'ACCESS_MODIFIER', value: result };
+    if (this.referenceTypes.includes(result)) {
+      return { type: 'REFERENCE_TYPE', value: result };
     }
 
     if (this.modifiers.includes(result)) {
       return { type: 'MODIFIER', value: result };
+    }
+
+    if (this.statements.includes(result)) {
+      return { type: 'STATEMENT', value: result };
+    }
+
+    if (this.methodParamters.includes(result)) {
+      return { type: 'METHOD_PARAMETER', value: result };
+    }
+
+    if (this.namespaces.includes(result)) {
+      return { type: 'NAMESPACE', value: result };
+    }
+
+    if (this.operators.includes(result)) {
+      return { type: 'OPERATOR', value: result };
+    }
+
+    if (this.conversions.includes(result)) {
+      return { type: 'CONVERSION', value: result };
+    }
+
+    if (this.access.includes(result)) {
+      return { type: 'ACCESS', value: result };
+    }
+
+    if (this.literals.includes(result)) {
+      return { type: 'LITERAL', value: result };
+    }
+
+    if (this.contextual.includes(result)) {
+      return { type: 'CONTEXTUAL', value: result };
     }
 
     return { type: 'IDENTIFIER', value: result };
@@ -105,3 +194,6 @@ class Tokenizer {
     return { type: 'NUMBER', value: Number(result) };
   }
 }
+
+const tokens = new Tokenizer(input);
+console.log(tokens.tokenize());
