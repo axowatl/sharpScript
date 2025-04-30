@@ -9,6 +9,7 @@ class ASTGenerator {
   }
 
   advance() {
+    console.log(this.position);
     this.position++;
   }
 
@@ -43,7 +44,100 @@ class ASTGenerator {
   }
 
   parseNamespace() {
-    
+    if (this.currentToken.value === 'namespace') {
+      this.advance(); // Skip 'namespace'
+
+      // Parse namespace name: e.g. MyApp.SubApp
+      let name = '';
+      while (this.currentToken && this.currentToken.type === 'IDENTIFIER') {
+        name += this.currentToken.value;
+        this.advance();
+
+        if (this.currentToken && this.currentToken.type === 'DOT') {
+          name += '.';
+          this.advance();
+        } else {
+          break;
+        }
+      }
+
+      if (!this.currentToken) {
+        throw new Error("Unexpected end after namespace name");
+      }
+
+      // Check for file-scoped or block-scoped
+      if (this.currentToken.type === 'SEMICOLON') {
+        this.advance(); // Skip ';'
+
+        // For file-scoped, everything until EOF belongs to this namespace
+        const body = [];
+        while (this.currentToken) {
+          const stmt = this.parseStatement();
+          if (stmt) body.push(stmt);
+          else this.advance(); // Skip unrecognized token
+        }
+
+        return {
+          type: "FileScopedNamespaceDeclaration",
+          name: name,
+          body: body
+        };
+      }
+
+      // Block-scoped namespace
+      if (this.currentToken.type !== 'LBRACE') {
+        throw new Error(`Expected '{' or ';' after namespace name`);
+      }
+
+      this.advance(); // Skip '{'
+      const body = [];
+
+      while (this.currentToken && this.currentToken.type !== 'RBRACE') {
+        const stmt = this.parseStatement();
+        if (stmt) body.push(stmt);
+        else this.advance(); // Skip unrecognized token
+      }
+
+      if (this.currentToken && this.currentToken.type === 'RBRACE') {
+        this.advance(); // Skip '}'
+      } else {
+        throw new Error(`Expected '}' to close namespace`);
+      }
+
+      return {
+        type: "NamespaceDeclaration",
+        name: name,
+        body: body
+      };
+    }
+
+    if (this.currentToken.value === 'using') {
+      this.advance(); // Skip 'using'
+      let alias = null;
+
+      if (this.peek().type === 'OPERATOR') {
+        alias = this.currentToken.value;
+        this.advance(); // Skip the alias
+        this.advance(); // Skip '='
+      }
+
+      let name = '';
+
+      while (this.currentToken.type !== 'SEMICOLON') {
+        name += this.currentToken.value;
+        this.advance();
+      }
+      
+      this.advance(); // Skip the ';'
+
+      return {
+        type: 'UsingStatement',
+        alias: alias,
+        name: name
+      };
+    }
+
+    if (currentToken.value === 'extern') {}
   }
 }
 
