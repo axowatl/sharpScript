@@ -1,26 +1,49 @@
-const input = `struct BigStruct
-{
-    public int A;
-    public int B;
-    public int C;
-    public int D;
-    public int E;
-}`;
+const displayOutput = document.getElementById('output');
+
+const input = `using s = System.Collections;`;
 
 class ASTGenerator {
-  constructor(input) {
-    this.input = input;
-    this.output = this.createStructure();
+  constructor(tokens) {
+    this.tokens = tokens;
+    this.position = 0;
   }
 
-  createStructure() {
-    return {
-        type: "Program",
-        start: 0,
-        end: this.input.length,
-        body: [],
-        sourceType: "module",
+  advance() {
+    this.position++;
+  }
+
+  get currentToken() {
+    return this.tokens[this.position];
+  }
+
+  peek(amount = 1) {
+    return this.tokens[this.position + amount];
+  }
+
+  parse() {
+    const program = {
+      type: "Program",
+      body: []
+    };
+
+    while (this.position < this.tokens.length) {
+      const stmt = this.parseStatement();
+      if (stmt) program.body.push(stmt);
     }
+
+    return program;
+  }
+
+  parseStatement() {
+    if (this.currentToken.type === 'NAMESPACE') {
+      return this.parseNamespace();
+    }
+
+    throw new Error(`Unexpected token: ${this.currentToken.value}`);
+  }
+
+  parseNamespace() {
+    
   }
 }
 
@@ -40,6 +63,7 @@ class Tokenizer {
     this.access = ["base", "this"];
     this.literals = ["null", "default"];
     this.contextual = ["add", "equals", "nameof", "value", "alias", "from", "on", "var", "ascending", "get", "orderby", "when", "async", "global", "where", "await", "group", "partial", "yield", "by", "into", "remove", "descending", "join", "select", "dynamic", "let", "set"];
+    this.preprocessorDirectives = ["#define", "#undef", "#if", "#else", "#elif", "#endif", "#region", "#endregion", "#warning", "#error", "#line"];    
   }
 
   advance() {
@@ -51,12 +75,53 @@ class Tokenizer {
     }
   }
 
+  peek(amount = 1) {
+    const nextPos = this.position + amount;
+    return nextPos < this.input.length ? this.input[nextPos] : null;
+  }
+
+  skipWhitespace() {
+    while (this.currentChar !== null && /\s/.test(this.currentChar)) {
+      this.advance();
+    }
+  }
+
+  skipComment() {
+    // Single-line comment
+    if (this.currentChar === '/' && this.peek() === '/') {
+      while (this.currentChar !== null && this.currentChar !== '\n') {
+        this.advance();
+      }
+    }
+    // Multi-line comment
+    else if (this.currentChar === '/' && this.peek() === '*') {
+      this.advance(); // skip '/'
+      this.advance(); // skip '*'
+      while (this.currentChar !== null) {
+        if (this.currentChar === '*' && this.peek() === '/') {
+          this.advance();
+          this.advance();
+          break;
+        }
+        this.advance();
+      }
+    }
+  }
+
   tokenize() {
     const tokens = [];
 
     while (this.currentChar !== null) {
-      if (/\s/.test(this.currentChar)) {
-        this.advance();
+      this.skipWhitespace();
+      if (this.currentChar === '/' && (this.peek() === '/' || this.peek() === '*')) {
+        this.skipComment();
+        continue;
+      }
+      if (this.currentChar === null) break;
+
+      if (this.currentChar === '#') {
+        let directive = this.preprocessorDirective();
+        tokens.push({ type: 'PREPROCESSOR_DIRECTIVE', value: directive });
         continue;
       }
 
@@ -70,61 +135,73 @@ class Tokenizer {
         continue;
       }
 
-      // Punctuation
-      if (this.currentChar === '{') {
-        tokens.push({ type: 'LBRACE', value: '{' });
-        this.advance();
-        continue;
-      }
-      if (this.currentChar === '}') {
-        tokens.push({ type: 'RBRACE', value: '}' });
-        this.advance();
-        continue;
-      }
-      if (this.currentChar === '(') {
-        tokens.push({ type: 'LPAREN', value: '(' });
-        this.advance();
-        continue;
-      }
-      if (this.currentChar === ')') {
-        tokens.push({ type: 'RPAREN', value: ')' });
-        this.advance();
-        continue;
-      }
-      if (this.currentChar === '[') {
-        tokens.push({ type: 'LBRACKET', value: '[' });
-        this.advance();
-        continue;
-      }
-      if (this.currentChar === ']') {
-        tokens.push({ type: 'RBRACKET', value: ']' });
-        this.advance();
+      if (this.currentChar === '"' || this.currentChar === "'") {
+        tokens.push(this.string());
         continue;
       }
 
-      // Symbols
-      if (this.currentChar === '=') {
-        tokens.push({ type: 'OPERATOR', value: '=' });
-        this.advance();
-        continue;
-      }
-      if (this.currentChar === ';') {
-        tokens.push({ type: 'PUNCTUATION', value: ';' });
-        this.advance();
-        continue;
-      }
-      if (this.currentChar === ',') {
-        tokens.push({ type: 'PUNCTUATION', value: ',' });
-        this.advance();
-        continue;
-      }
-      if (this.currentChar === '.') {
-        tokens.push({ type: 'DOT', value: '.' });
-        this.advance();
+      const fourCharOp = this.currentChar + this.peek() + this.peek(2) + this.peek(3);
+      if (['>>>='].includes(fourCharOp)) {
+        tokens.push({ type: 'OPERATOR', value: fourCharOp });
+        this.advance(); this.advance(); this.advance(); this.advance();
         continue;
       }
 
-      throw new Error(`Unknown character: ${this.currentChar}`);
+      const threeCharOp = this.currentChar + this.peek() + this.peek(2);
+      if (['>>>', '<<=', '>>=', '??='].includes(threeCharOp)) {
+        tokens.push({ type: 'OPERATOR', value: threeCharOp });
+        this.advance(); this.advance(); this.advance();
+        continue;
+      }
+
+      const twoCharOp = this.currentChar + this.peek();
+      if ([
+        '==', '!=', '>=', '<=', '&&', '||', '<<', '>>',
+        '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=',
+        '??', '->', '=>', '++', '--', '..'
+      ].includes(twoCharOp)) {
+        tokens.push({ type: 'OPERATOR', value: twoCharOp });
+        this.advance(); this.advance();
+        continue;
+      }
+
+      if (['$@', '@$'].includes(twoCharOp)) {
+        tokens.push({ type: 'INTERPOLATED', value: twoCharOp });
+        this.advance(); this.advance();
+        continue;
+      }
+
+      switch (this.currentChar) {
+        case '{': tokens.push({ type: 'LBRACE', value: '{' }); break;
+        case '}': tokens.push({ type: 'RBRACE', value: '}' }); break;
+        case '(': tokens.push({ type: 'LPAREN', value: '(' }); break;
+        case ')': tokens.push({ type: 'RPAREN', value: ')' }); break;
+        case '[': tokens.push({ type: 'LBRACKET', value: '[' }); break;
+        case ']': tokens.push({ type: 'RBRACKET', value: ']' }); break;
+        case ';': tokens.push({ type: 'SEMICOLON', value: ';' }); break;
+        case ',': tokens.push({ type: 'COMMA', value: ',' }); break;
+        case '.': tokens.push({ type: 'DOT', value: '.' }); break;
+        case '+': tokens.push({ type: 'OPERATOR', value: '+' }); break;
+        case '-': tokens.push({ type: 'OPERATOR', value: '-' }); break;
+        case '*': tokens.push({ type: 'OPERATOR', value: '*' }); break;
+        case '/': tokens.push({ type: 'OPERATOR', value: '/' }); break;
+        case '%': tokens.push({ type: 'OPERATOR', value: '%' }); break;
+        case '=': tokens.push({ type: 'OPERATOR', value: '=' }); break;
+        case '<': tokens.push({ type: 'OPERATOR', value: '<' }); break;
+        case '>': tokens.push({ type: 'OPERATOR', value: '>' }); break;
+        case '!': tokens.push({ type: 'OPERATOR', value: '!' }); break;
+        case '&': tokens.push({ type: 'OPERATOR', value: '&' }); break;
+        case '~': tokens.push({ type: 'OPERATOR', value: '~' }); break;
+        case '|': tokens.push({ type: 'OPERATOR', value: '|' }); break;
+        case '^': tokens.push({ type: 'OPERATOR', value: '^' }); break;
+        case '?': tokens.push({ type: 'QUESTION', value: '?' }); break;
+        case ':': tokens.push({ type: 'COLON', value: ':' }); break;
+        case '$': tokens.push({ type: 'INTERPOLATED', value: '$' }); break;
+        default:
+          throw new Error(`Unknown character: ${this.currentChar}`);
+      }
+
+      this.advance();
     }
 
     return tokens;
@@ -137,63 +214,84 @@ class Tokenizer {
       this.advance();
     }
 
-    if (this.valueTypes.includes(result)) {
-      return { type: 'VALUE_TYPE', value: result };
-    }
-
-    if (this.referenceTypes.includes(result)) {
-      return { type: 'REFERENCE_TYPE', value: result };
-    }
-
-    if (this.modifiers.includes(result)) {
-      return { type: 'MODIFIER', value: result };
-    }
-
-    if (this.statements.includes(result)) {
-      return { type: 'STATEMENT', value: result };
-    }
-
-    if (this.methodParamters.includes(result)) {
-      return { type: 'METHOD_PARAMETER', value: result };
-    }
-
-    if (this.namespaces.includes(result)) {
-      return { type: 'NAMESPACE', value: result };
-    }
-
-    if (this.operators.includes(result)) {
-      return { type: 'OPERATOR', value: result };
-    }
-
-    if (this.conversions.includes(result)) {
-      return { type: 'CONVERSION', value: result };
-    }
-
-    if (this.access.includes(result)) {
-      return { type: 'ACCESS', value: result };
-    }
-
-    if (this.literals.includes(result)) {
-      return { type: 'LITERAL', value: result };
-    }
-
-    if (this.contextual.includes(result)) {
-      return { type: 'CONTEXTUAL', value: result };
-    }
+    if (this.valueTypes.includes(result)) return { type: 'VALUE_TYPE', value: result };
+    if (this.referenceTypes.includes(result)) return { type: 'REFERENCE_TYPE', value: result };
+    if (this.modifiers.includes(result)) return { type: 'MODIFIER', value: result };
+    if (this.statements.includes(result)) return { type: 'STATEMENT', value: result };
+    if (this.methodParamters.includes(result)) return { type: 'METHOD_PARAMETER', value: result };
+    if (this.namespaces.includes(result)) return { type: 'NAMESPACE', value: result };
+    if (this.operators.includes(result)) return { type: 'OPERATOR', value: result };
+    if (this.conversions.includes(result)) return { type: 'CONVERSION', value: result };
+    if (this.access.includes(result)) return { type: 'ACCESS', value: result };
+    if (this.literals.includes(result)) return { type: 'LITERAL', value: result };
+    if (this.contextual.includes(result)) return { type: 'CONTEXTUAL', value: result };
 
     return { type: 'IDENTIFIER', value: result };
   }
 
   number() {
     let result = '';
-    while (this.currentChar !== null && /[0-9]/.test(this.currentChar)) {
+    let hasDot = false;
+
+    while (this.currentChar !== null && /[0-9\.]/.test(this.currentChar)) {
+      if (this.currentChar === '.') {
+        if (hasDot) break; // second dot? stop
+        hasDot = true;
+      }
       result += this.currentChar;
       this.advance();
     }
 
-    return { type: 'NUMBER', value: Number(result) };
+    return { type: 'NUMBER', value: hasDot ? parseFloat(result) : parseInt(result, 10) };
   }
+
+  string() {
+    const quoteType = this.currentChar; // ' or "
+    let result = '';
+    this.advance(); // skip opening quote
+
+    while (this.currentChar !== null && this.currentChar !== quoteType) {
+      if (this.currentChar === '\\') { // escape sequences
+        this.advance();
+        if (this.currentChar !== null) {
+          result += '\\' + this.currentChar;
+          this.advance();
+        }
+      } else {
+        result += this.currentChar;
+        this.advance();
+      }
+    }
+
+    if (this.currentChar !== quoteType) {
+      throw new Error(`Unterminated string literal`);
+    }
+
+    this.advance(); // skip closing quote
+    return { type: 'STRING', value: result };
+  }
+
+  preprocessorDirective() {
+    let result = '';
+    this.advance(); // Skip the '#' character
+    while (this.currentChar !== null && /\w/.test(this.currentChar)) {
+      result += this.currentChar;
+      this.advance();
+    }
+  
+    // Check if the directive is a valid known directive
+    if (!this.preprocessorDirectives.includes(result)) {
+      throw new Error(`Unknown preprocessor directive: ${result}`);
+    }
+  
+    return result;
+  }  
 }
 
-const tokens = new Tokenizer(input);
-console.log(tokens.tokenize());
+const tokenizer = new Tokenizer(input);
+const tokens = tokenizer.tokenize();
+console.log('Tokens:', tokens);
+const ASTGen = new ASTGenerator(tokens);
+const AST = ASTGen.parse();
+console.log('AST:', JSON.stringify(AST, null, 2));
+displayOutput.innerHTML = JSON.stringify(AST, null, 2);
