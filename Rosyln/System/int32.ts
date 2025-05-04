@@ -200,7 +200,7 @@ namespace System {
  
         /// <internalonly/>
         public ToType(type: Type, provider: IFormatProvider): SystemObject {
-            return Convert.DefaultToType((IConvertible)this, type, provider);
+            return Convert.DefaultToType(this, type, provider);
         }
 
         //
@@ -219,7 +219,7 @@ namespace System {
 
         /// <internalonly/>
         public Negate(): { value: int, overflowed: bool } {
-            const overflowed = this.m_value === int.MinValue); // Negate(MinValue) overflows
+            const overflowed = this.m_value === int.MinValue; // Negate(MinValue) overflows
             return new int(-this.m_value);
         }
 
@@ -316,32 +316,23 @@ namespace System {
  
         public Int32ArithmeticDescriptor = class Int32ArithmeticDescriptor implements ArithmeticDescriptor<Int32> {
             constructor(capabilities: ArithmeticCapabilities) {
-                
-            }
-            public Int32ArithmeticDescriptor(ArithmeticCapabilities capabilities) : base(capabilities) {}
-
-            public override Int32 One {
-                get {
-                    return (Int32) 1;
-                }
+                super(capabilities);
             }
 
-            public override Int32 Zero {
-                get {
-                    return (Int32) 0;
-                }
+            public override get One(): int {
+                return new int(1);
             }
 
-            public override Int32 MinValue {
-                get {
-                    return Int32.MinValue;
-                }
+            public override get Zero(): int {
+                return new int(0)
             }
 
-            public override Int32 MaxValue {
-                get {
-                    return Int32.MaxValue;
-                }
+            public override get MinValue(): int {
+                return int.MinValue;
+            }
+
+            public override get MaxValue(): int {
+                return int.MaxValue;
             }
         }
     }
