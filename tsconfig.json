@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+      "target": "ES2022",
+      "module": "none",
+      "jsx": "react",
+      "strict": true,
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "strictNullChecks": true,
+      "strictFunctionTypes": true,
+      "sourceMap": true
+    },
+    "include": ["Rosyln/**/*"],
+    "exclude": ["node_modules", "**/node_modules/*"]
+}
